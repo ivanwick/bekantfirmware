@@ -7,6 +7,7 @@
 #include "user.h"          // User funct/params, such as InitApp
 
 #include "btn/btn.h"
+#include "lin/lin_d.h"
 
 #include <pic.h>
 
@@ -23,6 +24,8 @@ void main(void) {
     TRISB = 0b00000011;
     INPUT_t last_input = INPUT_IDLE;
     
+    lin_init_hw();
+
     while (1) {
         ButtonState_t button_state = (ButtonState_t)PORTBbits;
         
