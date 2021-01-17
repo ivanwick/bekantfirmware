@@ -15,6 +15,7 @@
             <sourceRootList>
                 <sourceRootElem>btn</sourceRootElem>
                 <sourceRootElem>lin</sourceRootElem>
+                <sourceRootElem>bekant</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>
