@@ -107,9 +107,12 @@ void bctrl_timer(void) {
     if (schedule_pos >= SCHEDULE_TOTAL_COUNT) {
         // Collect data from bus transaction
         // TODO take from 0x08 or 0x09?
-        bctrl_pos = data_space_08.encoder; // take from 0x08 for now
         bctrl_status_08 = data_space_08.status;
         bctrl_status_09 = data_space_09.status;
+
+        // BUI might call back bctrl_set_target to change target state
+        // BCTRL_STOP based on the position
+        bui_set_pos(data_space_08.encoder); // take from 0x08 for now
 
         // Finish bus transaction
         schedule_pos = 0;

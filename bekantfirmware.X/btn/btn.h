@@ -2,6 +2,8 @@
 #include <pic.h>
 #include <stdbool.h>       /* For true/false definition */
 
+#ifndef BTN_H
+#define BTN_H
 
 // A mapping to PORTB
 // Determined by PCB traces
@@ -26,3 +28,5 @@ typedef enum {
 } INPUT_t;
 
 INPUT_t btn_gesture(ButtonState_t btn);
+
+#endif /* BTN_H */

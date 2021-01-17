@@ -8,6 +8,7 @@
 
 #include "btn/btn.h"
 #include "lin/lin_d.h"
+#include "bekant/bui.h"
 
 #include <pic.h>
 
@@ -33,8 +34,9 @@ void main(void) {
             INPUT_t input = btn_gesture(button_state);
             
             if (input != last_input) {
-                TXREG = input;
                 last_input = input;
+
+                bui_input(input);
             }
         }
         
