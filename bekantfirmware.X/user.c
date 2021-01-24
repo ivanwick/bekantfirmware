@@ -12,6 +12,9 @@
 #include <stdbool.h>        /* For true/false definition */
 
 #include "user.h"
+#include "lin/lin_d.h"
+#include "bekant/bctrl.h"
+#include "bekant/bui.h"
 
 /******************************************************************************/
 /* User Functions                                                             */
@@ -22,6 +25,11 @@ void InitUsart(void);
 
 void InitApp(void)
 {
+    // hook up LIN driver to BEKANT control module
+    lin_frame_finish = bctrl_rx_lin;
+    // hook up BEKANT control module to BEKANT UI module
+    bctrl_report_pos = bui_set_pos;
+
     /* TODO Initialize User Ports/Peripherals/Project here */
 
     /* Setup analog functionality and port direction */
@@ -57,6 +65,8 @@ void InitUsart(void) {
     
     INTCONbits.PEIE = 1; // Enable peripheral interrupts
     INTCONbits.GIE = 1; // Enable global interrupts
+
+    BAUDCONbits.SCKP = 1; // invert
 
     RCSTAbits.SPEN = 1; // Serial port enable
 }

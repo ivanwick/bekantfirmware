@@ -7,6 +7,8 @@
 #include "bctrl.h"
 #include "../lin/lin_d.h"
 
+void (*bctrl_report_pos)(uint16_t pos);
+
 uint16_t bctrl_pos;
 uint8_t bctrl_status_08;
 uint8_t bctrl_status_09;
@@ -29,7 +31,7 @@ typedef struct {
         uint8_t flags_and_id;
         struct {
             unsigned tx:1;
-            unsigned :1;
+            unsigned status:1; // whether frame was received OK
             unsigned id:6;
         };
     };
@@ -41,14 +43,19 @@ LIN_bus_message_t bus_schedule[] = {
     { .tx = true, .id = 0x11, .data_count = 3, .data = &zeroes },
     { .tx = false, .id = 0x08, .data_count = 3, .data = &data_space_08 },
     { .tx = false, .id = 0x09, .data_count = 3, .data = &data_space_09 },
-    { .tx = true, .id = 0x10, .data_count = 0, .data = NULL },
-    { .tx = true, .id = 0x10, .data_count = 0, .data = NULL },
-    { .tx = true, .id = 0x10, .data_count = 0, .data = NULL },
-    { .tx = true, .id = 0x10, .data_count = 0, .data = NULL },
-    { .tx = true, .id = 0x10, .data_count = 0, .data = NULL },
-    { .tx = true, .id = 0x10, .data_count = 0, .data = NULL },
-    { .tx = true, .id = 0x01, .data_count = 0, .data = NULL },
+    { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
+    { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
+    { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
+    { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
+    { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
+    { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
+    { .tx = false, .id = 0x01, .data_count = 0, .data = NULL },
     { .tx = true, .id = 0x12, .data_count = 3, .data = &data_space_12 },
+
+    // Nothing on the bus responds to ID 0x10, so the repeated RX frames
+    // for 0x10 might be some kind of retry logic.
+    // TODO
+    // See if it works after removing RX frames from 0x10
 };
 
 // Number of 5 ms slots in the bus schedule which are occupied by a frame
@@ -93,6 +100,18 @@ void bctrl_timer(void) {
     static uint8_t schedule_pos = 0;
     if (schedule_pos < SCHEDULE_OCCUPIED_COUNT) {
         LIN_bus_message_t msg = bus_schedule[schedule_pos];
+
+        // Check if last frame ever finished
+        if (lin_flags.L_STATUS_BUSY) {
+            // If still busy, reinit
+            msg.status = 0;
+            lin_init_hw(); // TODO rename to lin_reset_frame ?
+            // schedule_pos = 0;
+            // return;
+        } else {
+            msg.status = 1;
+        }
+
         lin_id = msg.id;
         lin_data_count = msg.data_count;
         lin_data = (uint8_t*)msg.data;
@@ -112,7 +131,8 @@ void bctrl_timer(void) {
 
         // BUI might call back bctrl_set_target to change target state
         // BCTRL_STOP based on the position
-        bui_set_pos(data_space_08.encoder); // take from 0x08 for now
+        bctrl_pos = data_space_08.encoder; // take from 0x08 for now
+        bctrl_report_pos(bctrl_pos);
 
         // Finish bus transaction
         schedule_pos = 0;
@@ -145,4 +165,8 @@ void bctrl_set_target(BCTRL_state_t state) {
             // Don't allow intermediate states (PRE_STOP/PRE_MOVE) as target
             break;
     }
+}
+
+void bctrl_rx_lin(void) {
+    // ??
 }
