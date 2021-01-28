@@ -94,6 +94,10 @@ void bctrl_next_state(void) {
             current_state = BCTRL_STOP;
             break;
     }
+
+    // Set up next transmitted frame for ID 0x12
+    data_space_12.encoder = bctrl_pos;
+    data_space_12.status = current_state;
 }
 
 void bctrl_timer(void) {
