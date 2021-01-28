@@ -7,6 +7,9 @@
       <logicalFolder name="btn" displayName="btn" projectFiles="true">
         <itemPath>btn/btn.h</itemPath>
       </logicalFolder>
+      <logicalFolder name="lin" displayName="lin" projectFiles="true">
+        <itemPath>lin/lin_d.h</itemPath>
+      </logicalFolder>
       <itemPath>system.h</itemPath>
       <itemPath>user.h</itemPath>
     </logicalFolder>
@@ -19,6 +22,9 @@
                    projectFiles="true">
       <logicalFolder name="btn" displayName="btn" projectFiles="true">
         <itemPath>btn/btn.c</itemPath>
+      </logicalFolder>
+      <logicalFolder name="lin" displayName="lin" projectFiles="true">
+        <itemPath>lin/lin_d.c</itemPath>
       </logicalFolder>
       <itemPath>configuration_bits.c</itemPath>
       <itemPath>interrupts.c</itemPath>
@@ -34,6 +40,7 @@
   </logicalFolder>
   <sourceRootList>
     <Elem>btn</Elem>
+    <Elem>lin</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
