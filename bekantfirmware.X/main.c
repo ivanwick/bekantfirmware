@@ -16,30 +16,6 @@ void main(void) {
     /* Configure the oscillator for the device */
     ConfigureOscillator();
 
-// This code seems to help get it out of a "stuck" state
-// When the echo from TX back to RX is not working
-//    TRISC = 0x00; // All outputs
-//
-//    while (true) {
-//    //for (uint8_t j = 0; j < 200; j++) {
-//        LATC = 0xff;
-//        for (uint8_t i = 0; i <= 0x10; i++) {
-//            CLRWDT();
-//            for (uint8_t k = 0; k < 0x10; k++) {
-//                
-//            }
-//        }
-//
-//        LATC = 0x00;
-//        for (uint8_t i = 0; i <= 0x10; i++) {
-//            CLRWDT();
-//            for (uint8_t k = 0; k < 0x10; k++) {
-//                
-//            }
-//        }
-//    }
-
-
     /* Initialize I/O and Peripherals for application */
     InitApp();
     
@@ -49,6 +25,7 @@ void main(void) {
     TRISB = 0b00000011;
     INPUT_t last_input = INPUT_IDLE;
     
+    LATC = 1;  // Enables LIN input to echo back from the bus
     TRISC = 0b10000000; // C7: input (serial RX)
 
     lin_init_hw();
