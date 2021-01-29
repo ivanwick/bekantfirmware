@@ -42,24 +42,46 @@ void lin_txrx_daemon() {
 
         case L_FRAME_ID:
             // start tx/rx data
-            lin_frame_state = L_FRAME_DATA;
-
             data_index = 0;
-            // FALL THROUGH
-        case L_FRAME_DATA:
-            if (data_index < lin_data_count) {
-                if (lin_flags.L_STATE_TX) { // true:TX false:RX
-                    TXREG = lin_data[data_index];
-                } else {
-                    lin_data[data_index] = RCREG;
-                }
-                data_index += 1;
-            } else {
-                if (lin_flags.L_STATE_TX) { // true:TX false:RX
-                    TXREG = lin_checksum;
-                }
 
-                lin_frame_state = L_FRAME_CHECKSUM;
+            if (!lin_flags.L_STATE_TX) { // RX
+                if (data_index < lin_data_count) {
+                    // Expect next byte is data
+                    lin_frame_state = L_FRAME_DATA;
+                } else {
+                    // Zero-length frame, expect next byte is checksum.
+                    // Technically LIN frames are supposed to be 2, 4, or 8
+                    // bytes, but BEKANT has out-of-spec frame lengths anyway.
+                    lin_frame_state = L_FRAME_CHECKSUM;
+                }
+                break;
+            } else { // TX
+                lin_frame_state = L_FRAME_DATA;
+                // NO BREAK
+                // FALL THROUGH NOW to case L_FRAME_DATA
+            }
+
+        case L_FRAME_DATA:
+            if (lin_flags.L_STATE_TX) {
+                if (data_index < lin_data_count) {
+                    TXREG = lin_data[data_index];
+                    data_index += 1;
+                    // stay in L_FRAME_DATA state
+                } else {
+                    TXREG = lin_checksum;
+                    lin_frame_state = L_FRAME_CHECKSUM;
+                }
+            } else {
+                lin_data[data_index] = RCREG;
+                data_index += 1;
+
+                if (data_index < lin_data_count) {
+                    // expect more data bytes
+                    lin_frame_state = L_FRAME_DATA;
+                } else {
+                    // data finished, expect checksum next
+                    lin_frame_state = L_FRAME_CHECKSUM;
+                }
             }
             break;
 
