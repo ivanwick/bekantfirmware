@@ -65,7 +65,10 @@ LIN_bus_message_t bus_schedule[] = {
 BCTRL_state_t current_state = BCTRL_STOP;
 BCTRL_state_t target_state = BCTRL_STOP;
 
+#define PRE_STOP_RAMPDOWN 3
+
 void bctrl_next_state(void) {
+    static uint8_t pre_stop_counter = 0;
     switch (current_state) {
         case BCTRL_STOP:
             if (target_state == BCTRL_UP || target_state == BCTRL_DOWN) {
@@ -83,11 +86,15 @@ void bctrl_next_state(void) {
         case BCTRL_DOWN:
             if (target_state != current_state || target_state == BCTRL_STOP) {
                 current_state = BCTRL_PRE_STOP_A;
+                pre_stop_counter = 0;
             }
             break;
 
         case BCTRL_PRE_STOP_A:
-            current_state = BCTRL_PRE_STOP_B;
+            pre_stop_counter += 1;
+            if (pre_stop_counter >= PRE_STOP_RAMPDOWN) {
+                current_state = BCTRL_PRE_STOP_B;
+            }
             break;
 
         case BCTRL_PRE_STOP_B:
