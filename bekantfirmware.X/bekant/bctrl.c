@@ -61,14 +61,19 @@ LIN_bus_message_t bus_schedule[] = {
 // Number of 5 ms slots in the bus schedule which are occupied by a frame
 #define SCHEDULE_OCCUPIED_COUNT 11
 #define SCHEDULE_TOTAL_COUNT 20
+#define SCHEDULE_COMMAND_SLOT 10
 
 BCTRL_state_t current_state = BCTRL_STOP;
 BCTRL_state_t target_state = BCTRL_STOP;
 
 #define PRE_STOP_RAMPDOWN 3
 
+BCTRL_state_t last_move = BCTRL_DOWN;
+
+uint8_t pre_stop_counter = 0;
+uint16_t overshoot_target = 0;
+
 void bctrl_next_state(void) {
-    static uint8_t pre_stop_counter = 0;
     switch (current_state) {
         case BCTRL_STOP:
             if (target_state == BCTRL_UP || target_state == BCTRL_DOWN) {
@@ -84,6 +89,7 @@ void bctrl_next_state(void) {
 
         case BCTRL_UP:
         case BCTRL_DOWN:
+            last_move = current_state;
             if (target_state != current_state || target_state == BCTRL_STOP) {
                 current_state = BCTRL_PRE_STOP_A;
                 pre_stop_counter = 0;
@@ -121,6 +127,53 @@ void bctrl_timer(void) {
             // return;
         } else {
             msg.status = 1;
+        }
+
+        if (schedule_pos == SCHEDULE_COMMAND_SLOT) {
+            // populate command frame based on the most recent
+            // 0x08 and 0x09 frames
+            switch (current_state) {
+                case BCTRL_PRE_STOP_A:
+                    if (pre_stop_counter == 0) {
+                        // calculate overshoot value based on last_move
+                        if (last_move == BCTRL_UP) {
+                            // add overshoot
+                            if (data_space_08.encoder < data_space_09.encoder) {
+                                overshoot_target = data_space_09.encoder + 0x6c;
+                            } else {
+                                overshoot_target = data_space_08.encoder + 0x6c;
+                            }
+
+                        } else {
+                            // subtract overshoot
+                            if (data_space_08.encoder < data_space_09.encoder) {
+                                overshoot_target = data_space_08.encoder - 0x6c;
+                            } else {
+                                overshoot_target = data_space_09.encoder - 0x6c;
+                            }
+                        }
+                    }
+                    msg.data->encoder = overshoot_target;
+                    break;
+                    
+                case BCTRL_UP:
+                    // take lesser encoder value
+                    if (data_space_08.encoder < data_space_09.encoder) {
+                        msg.data->encoder = data_space_08.encoder;
+                    } else {
+                        msg.data->encoder = data_space_09.encoder;
+                    }
+                    break;
+                    
+                default:
+                    // take greater encoder value
+                    if (data_space_08.encoder < data_space_09.encoder) {
+                        msg.data->encoder = data_space_09.encoder;
+                    } else {
+                        msg.data->encoder = data_space_08.encoder;
+                    }
+                    break;
+            }
         }
 
         lin_id = msg.id;
