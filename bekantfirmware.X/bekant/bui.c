@@ -64,6 +64,7 @@ void bui_input(INPUT_t input) {
             if (input == INPUT_MEM_UP && cur_pos < high_pos) {
                 bui_state = BUI_MEM_UP;
             } else if (input == INPUT_IDLE) {
+                bui_state = BUI_STOP;
                 bctrl_set_target(BCTRL_STOP);
             } else if (input == INPUT_DOWN) {
                 bui_state = BUI_DOWN;
@@ -75,6 +76,7 @@ void bui_input(INPUT_t input) {
             if (input == INPUT_MEM_DOWN && cur_pos > low_pos) {
                 bui_state = BUI_MEM_DOWN;
             } else if (input == INPUT_IDLE) {
+                bui_state = BUI_STOP;
                 bctrl_set_target(BCTRL_STOP);
             } else if (input == INPUT_UP) {
                 bui_state = BUI_UP;
