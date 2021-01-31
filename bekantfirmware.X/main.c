@@ -30,6 +30,8 @@ void main(void) {
 
     lin_init_hw();
 
+    bui_init_pos(0x0636, 0x1600);
+
     // TEST CODE TO DEBUG IN SIMULATOR
     //lin_id = 0x11;
     //lin_tx_frame();
