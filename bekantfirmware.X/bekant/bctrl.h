@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 typedef enum {
+    BCTRL_AFTER_SCAN = 0xbf,
     BCTRL_STOP = 0xfc,
     BCTRL_PRE_MOVE = 0xc4,
     BCTRL_UP = 0x86,
@@ -13,5 +14,6 @@ typedef enum {
 void bctrl_timer(void);
 void bctrl_set_target(BCTRL_state_t state);
 void bctrl_rx_lin(void);
+void bctrl_init(void);
 
 extern void (*bctrl_report_pos)(uint16_t pos);

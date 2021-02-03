@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include "bctrl.h"
 #include "../lin/lin_d.h"
+#include <pic.h>
 
 void (*bctrl_report_pos)(uint16_t pos);
 
@@ -63,7 +64,7 @@ LIN_bus_message_t bus_schedule[] = {
 #define SCHEDULE_TOTAL_COUNT 20
 #define SCHEDULE_COMMAND_SLOT 10
 
-BCTRL_state_t current_state = BCTRL_STOP;
+BCTRL_state_t current_state = BCTRL_AFTER_SCAN;
 BCTRL_state_t target_state = BCTRL_STOP;
 
 #define PRE_STOP_RAMPDOWN 3
@@ -75,6 +76,10 @@ uint16_t overshoot_target = 0;
 
 void bctrl_next_state(void) {
     switch (current_state) {
+        case BCTRL_AFTER_SCAN:
+            current_state = BCTRL_STOP;
+            break;
+
         case BCTRL_STOP:
             if (target_state == BCTRL_UP || target_state == BCTRL_DOWN) {
                 current_state = BCTRL_PRE_MOVE;
@@ -157,6 +162,19 @@ void bctrl_timer(void) {
                     break;
                     
                 case BCTRL_UP:
+                    if ((data_space_08.encoder & 0x8000) != 0 ||
+                            (data_space_09.encoder & 0x8000) != 0 ) {
+                        // error condition?
+                        // take greater encoder value
+                        if (data_space_08.encoder < data_space_09.encoder) {
+                            msg.data->encoder = data_space_09.encoder;
+                        } else {
+                            msg.data->encoder = data_space_08.encoder;
+                        }
+                        msg.data->status = 0xbc;
+                        break;
+                    }
+                    
                     // take lesser encoder value
                     if (data_space_08.encoder < data_space_09.encoder) {
                         msg.data->encoder = data_space_08.encoder;
@@ -165,6 +183,27 @@ void bctrl_timer(void) {
                     }
                     break;
                     
+                case BCTRL_AFTER_SCAN:
+                    msg.data->encoder = 0xfff6;
+                    msg.data->status = BCTRL_AFTER_SCAN;
+                    break;
+                    
+                case BCTRL_DOWN:
+                    if ((data_space_08.encoder & 0x8000) != 0 ||
+                            (data_space_09.encoder & 0x8000) != 0 ) {
+                        // error condition?
+                        // encoder zero when OEM_DOWN_SLOW
+                        msg.data->encoder = 0;
+                        msg.data->status = 0xbd;
+                    } else {
+                        // take greater encoder value
+                        if (data_space_08.encoder < data_space_09.encoder) {
+                            msg.data->encoder = data_space_09.encoder;
+                        } else {
+                            msg.data->encoder = data_space_08.encoder;
+                        }
+                    }
+                    break;
                 default:
                     // take greater encoder value
                     if (data_space_08.encoder < data_space_09.encoder) {
@@ -233,4 +272,24 @@ void bctrl_set_target(BCTRL_state_t state) {
 
 void bctrl_rx_lin(void) {
     // ??
+}
+
+void bctrl_init(void) {
+    // LIN Frame timeout timer
+    // Slave must respond within 10ms after BREAK+SYNC+ID
+    // or at least start responding
+    // typical response starts after 225 us
+    // full LIN frame takes ~4.225 ms
+    // Each LIN frame starts ~5ms
+    //
+
+    // 4 Mhz / 16 prescaler / 125 period / 10 postscaler = 200 Hz
+    //   0.005 sec
+    //   5 msec
+    T4CONbits.T4CKPS = 0b10; // Prescaler is 16
+    PR4bits.PR4 = 0x7d; // Period: 125
+    T4CONbits.T4OUTPS = 0b1001; // 1:10 Postscaler
+
+    T4CONbits.TMR4ON = 1; // Timer is on
+    PIE3bits.TMR4IE = 1; // Enable Timer4 interrupt
 }

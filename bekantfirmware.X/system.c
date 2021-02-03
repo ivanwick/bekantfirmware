@@ -34,22 +34,4 @@ void ConfigureOscillator(void)
     T2CONbits.T2OUTPS = 0b1001; // 1:10 Postscaler
     T2CONbits.T2CKPS = 0b00; // Prescaler is 1
     T2CONbits.TMR2ON = 1; // Timer is on
-
-    // LIN Frame timeout timer
-    // Slave must respond within 10ms after BREAK+SYNC+ID
-    // or at least start responding
-    // typical response starts after 225 us
-    // full LIN frame takes ~4.225 ms
-    // Each LIN frame starts ~5ms
-    //
-
-    // 4 Mhz / 16 prescaler / 125 period / 10 postscaler = 200 Hz
-    //   0.005 sec
-    //   5 msec
-    T4CONbits.T4CKPS = 0b10; // Prescaler is 16
-    PR4bits.PR4 = 0x7d; // Period: 125
-    T4CONbits.T4OUTPS = 0b1001; // 1:10 Postscaler
-
-    T4CONbits.TMR4ON = 1; // Timer is on
-    PIE3bits.TMR4IE = 1; // Enable Timer4 interrupt
 }

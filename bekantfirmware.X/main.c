@@ -8,7 +8,9 @@
 
 #include "btn/btn.h"
 #include "lin/lin_d.h"
+#include "bekant/bscan.h"
 #include "bekant/bui.h"
+#include "bekant/bctrl.h"
 
 #include <pic.h>
 
@@ -33,6 +35,11 @@ void main(void) {
     TRISC = 0b10000000; // C7: input (serial RX)
 
     lin_init_hw();
+
+    bscan_init();
+    bscan_scan();
+
+    bctrl_init();
 
     bui_init_pos(mem_low_pos, mem_high_pos);
 

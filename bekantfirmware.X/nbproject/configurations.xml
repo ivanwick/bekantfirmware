@@ -7,6 +7,7 @@
       <logicalFolder name="bekant" displayName="bekant" projectFiles="true">
         <itemPath>bekant/bctrl.h</itemPath>
         <itemPath>bekant/bui.h</itemPath>
+        <itemPath>bekant/bscan.h</itemPath>
       </logicalFolder>
       <logicalFolder name="btn" displayName="btn" projectFiles="true">
         <itemPath>btn/btn.h</itemPath>
@@ -27,6 +28,7 @@
       <logicalFolder name="bekant" displayName="bekant" projectFiles="true">
         <itemPath>bekant/bctrl.c</itemPath>
         <itemPath>bekant/bui.c</itemPath>
+        <itemPath>bekant/bscan.c</itemPath>
       </logicalFolder>
       <logicalFolder name="btn" displayName="btn" projectFiles="true">
         <itemPath>btn/btn.c</itemPath>
