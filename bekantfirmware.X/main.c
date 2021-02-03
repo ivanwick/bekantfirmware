@@ -12,6 +12,10 @@
 
 #include <pic.h>
 
+//__EEPROM_DATA(0x36, 0x06, 0x00, 0x16, 0, 0, 0, 0);
+__eeprom uint16_t mem_high_pos = 0x1600;
+__eeprom uint16_t mem_low_pos = 0x0636;
+
 void main(void) {
     /* Configure the oscillator for the device */
     ConfigureOscillator();
@@ -30,7 +34,7 @@ void main(void) {
 
     lin_init_hw();
 
-    bui_init_pos(0x0636, 0x1600);
+    bui_init_pos(mem_low_pos, mem_high_pos);
 
     // TEST CODE TO DEBUG IN SIMULATOR
     //lin_id = 0x11;
