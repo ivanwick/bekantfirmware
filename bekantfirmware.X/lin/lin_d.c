@@ -109,17 +109,16 @@ void lin_txrx_daemon() {
  * Compute the checksum based on the current ID + parity and data.
  * lin_checksum populated with result.
  *
- * TODO
- * Only supports LIN 2.x enhanced checksums.
- * Support classic or enhanced checksums based on ID.
- *
  * @return checksum byte
  */
 uint8_t lin_compute_checksum(void) {
     // TODO inline assembly
     uint8_t result = 0;
 
-    result += lin_protected_id;
+    // Frame ID 60 (0x3c) to 61 (0x3d) always use classic checksum
+    if (lin_id != 0x3c && lin_id != 0x3d) {
+        result += lin_protected_id; // enhanced checksum
+    }
 
     for (uint8_t i = 0; i < lin_data_count; i++) {
         uint16_t sum = result + lin_data[i];
