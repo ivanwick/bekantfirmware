@@ -1,0 +1,7 @@
+
+# https://microchipdeveloper.com/faq:72
+build/
+dist/
+nbproject/Makefile-*
+nbproject/Package-*
+nbproject/private/
