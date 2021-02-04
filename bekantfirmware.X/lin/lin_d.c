@@ -255,7 +255,10 @@ void lin_reset_usart(void) {
  */
 void lin_init_hw() {
     lin_reset_usart();
-    
+    lin_reset_frame();
+}
+
+void lin_reset_frame() {
     lin_data_count = 0;
     lin_flags = (LIN_FLAGS_t)(uint8_t)0;
     lin_error_flags = (LIN_ERROR_FLAGS_t)(uint8_t)0;

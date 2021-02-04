@@ -8,10 +8,10 @@ extern void (*lin_frame_finish)(void);    // Pointer to frame rx handler
 extern void (*lin_err)(void);    // Pointer to frame error handler
 
 void lin_txrx_daemon(void);         // Send a sync break signal
-void lin_rx_frame(void);	               
-void lin_tx_frame(void);                
-void lin_time_update(void);             
-void lin_init_hw(void);         // Receive and compare to the calculated checksum
+void lin_rx_frame(void);
+void lin_tx_frame(void);
+void lin_init_hw(void);
+void lin_reset_frame(void);
 
 typedef enum {
     L_FRAME_INTERFRAME,

@@ -109,7 +109,7 @@ void bctrl_timer(void) {
         if (lin_flags.L_STATUS_BUSY) {
             // If still busy, reinit
             msg.status = 0;
-            lin_init_hw(); // TODO rename to lin_reset_frame ?
+            lin_reset_frame();
             // schedule_pos = 0;
             // return;
         } else {
