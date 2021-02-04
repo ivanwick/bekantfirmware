@@ -9,10 +9,17 @@
 #include <pic.h>
 
 void (*bctrl_report_pos)(uint16_t pos);
+void bctrl_populate_cmd(void);
+void bctrl_next_state(void);
 
 uint16_t bctrl_pos;
 uint8_t bctrl_status_08;
 uint8_t bctrl_status_09;
+BCTRL_state_t current_state = BCTRL_AFTER_SCAN;
+BCTRL_state_t target_state = BCTRL_STOP;
+
+uint8_t decel_counter = 0;
+uint16_t decel_target = 0;
 
 typedef union {
     uint8_t data[3];
@@ -25,7 +32,7 @@ typedef union {
 BCTRL_bus_data_t zeroes = {0, 0, 0};
 BCTRL_bus_data_t data_space_08;
 BCTRL_bus_data_t data_space_09;
-BCTRL_bus_data_t data_space_12;
+BCTRL_bus_data_t cmd_data;
 
 typedef struct {
     union {
@@ -51,7 +58,7 @@ LIN_bus_message_t bus_schedule[] = {
     { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
     { .tx = false, .id = 0x10, .data_count = 0, .data = NULL },
     { .tx = false, .id = 0x01, .data_count = 0, .data = NULL },
-    { .tx = true, .id = 0x12, .data_count = 3, .data = &data_space_12 },
+    { .tx = true, .id = 0x12, .data_count = 3, .data = &cmd_data },
 
     // Nothing on the bus responds to ID 0x10, so the repeated RX frames
     // for 0x10 might be some kind of retry logic.
@@ -64,15 +71,20 @@ LIN_bus_message_t bus_schedule[] = {
 #define SCHEDULE_TOTAL_COUNT 20
 #define SCHEDULE_COMMAND_SLOT 10
 
-BCTRL_state_t current_state = BCTRL_AFTER_SCAN;
-BCTRL_state_t target_state = BCTRL_STOP;
+#define DECEL_COUNT_MAX 3 // How many decel frames to send
+#define DECEL_OVERSHOOT 0x6c
 
-#define PRE_STOP_RAMPDOWN 3
-
-BCTRL_state_t last_move = BCTRL_DOWN;
-
-uint8_t pre_stop_counter = 0;
-uint16_t overshoot_target = 0;
+enum {
+    BCMD_AFTER_SCAN_INIT = 0xbf,
+    BCMD_STOP_IDLE = 0xfc,
+    BCMD_PRE_MOVE = 0xc4,
+    BCMD_UP = 0x86,
+    BCMD_DOWN = 0x85,
+    BCMD_CMD_DECEL = 0x87,
+    BCMD_PRE_STOP = 0x84,
+    BCMD_ERR_DOWN = 0xbd,
+    BCMD_ERR_UP = 0xbc,
+};
 
 void bctrl_next_state(void) {
     switch (current_state) {
@@ -93,132 +105,66 @@ void bctrl_next_state(void) {
             break;
 
         case BCTRL_UP:
+            if (target_state != current_state) {
+                current_state = BCTRL_UP_DECEL;
+                decel_counter = 0;
+            }
+            break;
         case BCTRL_DOWN:
-            last_move = current_state;
-            if (target_state != current_state || target_state == BCTRL_STOP) {
-                current_state = BCTRL_PRE_STOP_A;
-                pre_stop_counter = 0;
+            if (target_state != current_state) {
+                current_state = BCTRL_DOWN_DECEL;
+                decel_counter = 0;
             }
             break;
 
-        case BCTRL_PRE_STOP_A:
-            pre_stop_counter += 1;
-            if (pre_stop_counter >= PRE_STOP_RAMPDOWN) {
-                current_state = BCTRL_PRE_STOP_B;
+        case BCTRL_UP_DECEL:
+        case BCTRL_DOWN_DECEL:
+            decel_counter += 1;
+            if (decel_counter >= DECEL_COUNT_MAX) {
+                current_state = BCTRL_PRE_STOP;
             }
             break;
 
-        case BCTRL_PRE_STOP_B:
+        case BCTRL_PRE_STOP:
             current_state = BCTRL_STOP;
             break;
     }
-
-    // Set up next transmitted frame for ID 0x12
-    data_space_12.encoder = bctrl_pos;
-    data_space_12.status = current_state;
 }
 
 void bctrl_timer(void) {
     static uint8_t schedule_pos = 0;
-    if (schedule_pos < SCHEDULE_OCCUPIED_COUNT) {
-        LIN_bus_message_t msg = bus_schedule[schedule_pos];
 
-        // Check if last frame ever finished
-        if (lin_flags.L_STATUS_BUSY) {
-            // If still busy, reinit
-            msg.status = 0;
-            lin_reset_frame();
-            // schedule_pos = 0;
-            // return;
-        } else {
-            msg.status = 1;
-        }
+    if (schedule_pos > 0) {
+        // Set status of prior frame
+        // At schedule_pos == 0, there is no prior frame
+        uint8_t prior_frame_pos = schedule_pos - 1;
+        if (prior_frame_pos < SCHEDULE_OCCUPIED_COUNT) {
+            LIN_bus_message_t* prior_msg = &bus_schedule[prior_frame_pos];
 
-        if (schedule_pos == SCHEDULE_COMMAND_SLOT) {
-            // populate command frame based on the most recent
-            // 0x08 and 0x09 frames
-            switch (current_state) {
-                case BCTRL_PRE_STOP_A:
-                    if (pre_stop_counter == 0) {
-                        // calculate overshoot value based on last_move
-                        if (last_move == BCTRL_UP) {
-                            // add overshoot
-                            if (data_space_08.encoder < data_space_09.encoder) {
-                                overshoot_target = data_space_09.encoder + 0x6c;
-                            } else {
-                                overshoot_target = data_space_08.encoder + 0x6c;
-                            }
-
-                        } else {
-                            // subtract overshoot
-                            if (data_space_08.encoder < data_space_09.encoder) {
-                                overshoot_target = data_space_08.encoder - 0x6c;
-                            } else {
-                                overshoot_target = data_space_09.encoder - 0x6c;
-                            }
-                        }
-                    }
-                    msg.data->encoder = overshoot_target;
-                    break;
-                    
-                case BCTRL_UP:
-                    if ((data_space_08.encoder & 0x8000) != 0 ||
-                            (data_space_09.encoder & 0x8000) != 0 ) {
-                        // error condition?
-                        // take greater encoder value
-                        if (data_space_08.encoder < data_space_09.encoder) {
-                            msg.data->encoder = data_space_09.encoder;
-                        } else {
-                            msg.data->encoder = data_space_08.encoder;
-                        }
-                        msg.data->status = 0xbc;
-                        break;
-                    }
-                    
-                    // take lesser encoder value
-                    if (data_space_08.encoder < data_space_09.encoder) {
-                        msg.data->encoder = data_space_08.encoder;
-                    } else {
-                        msg.data->encoder = data_space_09.encoder;
-                    }
-                    break;
-                    
-                case BCTRL_AFTER_SCAN:
-                    msg.data->encoder = 0xfff6;
-                    msg.data->status = BCTRL_AFTER_SCAN;
-                    break;
-                    
-                case BCTRL_DOWN:
-                    if ((data_space_08.encoder & 0x8000) != 0 ||
-                            (data_space_09.encoder & 0x8000) != 0 ) {
-                        // error condition?
-                        // encoder zero when OEM_DOWN_SLOW
-                        msg.data->encoder = 0;
-                        msg.data->status = 0xbd;
-                    } else {
-                        // take greater encoder value
-                        if (data_space_08.encoder < data_space_09.encoder) {
-                            msg.data->encoder = data_space_09.encoder;
-                        } else {
-                            msg.data->encoder = data_space_08.encoder;
-                        }
-                    }
-                    break;
-                default:
-                    // take greater encoder value
-                    if (data_space_08.encoder < data_space_09.encoder) {
-                        msg.data->encoder = data_space_09.encoder;
-                    } else {
-                        msg.data->encoder = data_space_08.encoder;
-                    }
-                    break;
+            // Check if last frame ever finished
+            if (lin_flags.L_STATUS_BUSY) {
+                // If still busy, reinit
+                prior_msg->status = 0;
+                lin_reset_frame();
+            } else {
+                prior_msg->status = 1;
             }
         }
+    }
 
-        lin_id = msg.id;
-        lin_data_count = msg.data_count;
-        lin_data = (uint8_t*)msg.data;
-        if (msg.tx) {
+    if (schedule_pos < SCHEDULE_OCCUPIED_COUNT) {
+        LIN_bus_message_t* msg = &bus_schedule[schedule_pos];
+        if (schedule_pos == SCHEDULE_COMMAND_SLOT) {
+            // Collect data from bus transaction so far
+            bctrl_status_08 = data_space_08.status;
+            bctrl_status_09 = data_space_09.status;
+            bctrl_populate_cmd();
+        }
+
+        lin_id = msg->id;
+        lin_data_count = msg->data_count;
+        lin_data = (uint8_t*)msg->data;
+        if (msg->tx) {
             lin_tx_frame();
         } else {
             lin_rx_frame();
@@ -227,14 +173,9 @@ void bctrl_timer(void) {
 
     schedule_pos++;
     if (schedule_pos >= SCHEDULE_TOTAL_COUNT) {
-        // Collect data from bus transaction
-        // TODO take from 0x08 or 0x09?
-        bctrl_status_08 = data_space_08.status;
-        bctrl_status_09 = data_space_09.status;
-
         // BUI might call back bctrl_set_target to change target state
         // BCTRL_STOP based on the position
-        bctrl_pos = data_space_08.encoder; // take from 0x08 for now
+        bctrl_pos = cmd_data.encoder; // encoder val from whatever cmd sent
         bctrl_report_pos(bctrl_pos);
 
         // Finish bus transaction
@@ -243,6 +184,90 @@ void bctrl_timer(void) {
         // TODO if settled at stop state (current/target) then disable
         // timer to prevent continuous non-moving transactions
         // Possibly go into sleep mode?
+    }
+}
+
+inline uint16_t min(uint16_t a, uint16_t b) {
+    return a < b ? a : b;
+}
+
+inline uint16_t max(uint16_t a, uint16_t b) {
+    return a > b ? a : b;
+}
+
+/**
+ * Populate command frame based on the most recent 0x08 and 0x09 frames
+ */
+void bctrl_populate_cmd() {
+    uint16_t encoder_min = min(data_space_08.encoder, data_space_09.encoder);
+    uint16_t encoder_max = max(data_space_08.encoder, data_space_09.encoder);
+    bool error_cond = (
+            (data_space_08.encoder & 0x8000) != 0 ||
+            (data_space_09.encoder & 0x8000) != 0
+            );
+
+    switch (current_state) {
+        case BCTRL_AFTER_SCAN:
+            cmd_data.encoder = 0xfff6;
+            cmd_data.status = BCMD_AFTER_SCAN_INIT;
+            break;
+
+        case BCTRL_UP_DECEL:
+            if (decel_counter == 0) {
+                // add overshoot to max
+                decel_target = encoder_max + DECEL_OVERSHOOT;
+            }
+
+            cmd_data.encoder = decel_target;
+            cmd_data.status = BCMD_CMD_DECEL;
+            break;
+
+        case BCTRL_DOWN_DECEL:
+            if (decel_counter == 0) {
+                // subtract overshoot from min
+                decel_target = encoder_min - DECEL_OVERSHOOT;
+            }
+
+            cmd_data.encoder = decel_target;
+            cmd_data.status = BCMD_CMD_DECEL;
+            break;
+
+        case BCTRL_UP:
+            if (error_cond) {
+                // take greater encoder value
+                cmd_data.encoder = encoder_max;
+                cmd_data.status = BCMD_ERR_UP;
+            } else {
+                // take lesser encoder value
+                cmd_data.encoder = encoder_min;
+                cmd_data.status = BCMD_UP;
+            }
+            break;
+
+        case BCTRL_DOWN:
+            if (error_cond) {
+                // encoder zero when OEM_DOWN_SLOW
+                cmd_data.encoder = 0;
+                cmd_data.status = BCMD_ERR_DOWN;
+            } else {
+                // take greater encoder value
+                cmd_data.encoder = encoder_max;
+                cmd_data.status = BCMD_DOWN;
+            }
+            break;
+
+        case BCTRL_STOP:
+            cmd_data.encoder = encoder_max;
+            cmd_data.status = BCMD_STOP_IDLE;
+            break;
+        case BCTRL_PRE_MOVE:
+            cmd_data.encoder = encoder_max;
+            cmd_data.status = BCMD_PRE_MOVE;
+            break;
+        case BCTRL_PRE_STOP:
+            cmd_data.encoder = encoder_max;
+            cmd_data.status = BCMD_PRE_STOP;
+            break;
     }
 }
 
