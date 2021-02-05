@@ -19,6 +19,23 @@
 
 import sigrokdecode as srd
 
+'''
+OUTPUT_PYTHON format:
+Packet:
+[<ptype>, <data>]
+
+<ptype>:
+ - 'FRAME'
+ - 'ERROR'
+
+Examples:
+['FRAME', {'break': (4992, 5665, 0), 'sync': (5823, 6241, 85),
+           'pid': (6602, 7020, 8), 'id': 8, 'parity': 0, 'parity_valid': True,
+           'checksum': (9114, 9532, 64), 'checksum_valid': True,
+           'data': [(7401, 7819, 81), (7972, 8390, 6), (8543, 8961, 96)]} ]
+['ERROR']
+'''
+
 class LinFsm:
     class State:
         WaitForBreak = 'WAIT_FOR_BREAK'
@@ -57,15 +74,22 @@ class LinFsm:
         self.uart_idle_count = 0
         self.reset()
 
+class Ann:
+    DATA = 0
+    CONTROL = 1
+    FRAME = 2
+    INLINE_ERROR = 3
+    ERROR_DESC = 4
+
 class Decoder(srd.Decoder):
     api_version = 3
-    id = 'lin'
+    id = 'linpyout'
     name = 'LIN'
     longname = 'Local Interconnect Network'
     desc = 'Local Interconnect Network (LIN) protocol.'
     license = 'gplv2+'
     inputs = ['uart']
-    outputs = []
+    outputs = ['lin']
     tags = ['Automotive']
     options = (
         {'id': 'version', 'desc': 'Protocol version', 'default': 2, 'values': (1, 2)},
@@ -73,12 +97,14 @@ class Decoder(srd.Decoder):
     annotations = (
         ('data', 'LIN data'),
         ('control', 'Protocol info'),
-        ('error', 'Error description'),
+        ('frame', 'LIN frame'),
         ('inline_error', 'Protocol violation or error'),
+        ('error', 'Error description'),
     )
     annotation_rows = (
-        ('data_vals', 'Data', (0, 1, 3)),
-        ('errors', 'Errors', (2,)),
+        ('data_vals', 'Data', (Ann.DATA, Ann.CONTROL, Ann.INLINE_ERROR)),
+        ('frames', 'Frame', (Ann.FRAME,)),
+        ('errors', 'Errors', (Ann.ERROR_DESC,)),
     )
 
     def __init__(self):
@@ -94,6 +120,7 @@ class Decoder(srd.Decoder):
 
     def start(self):
         self.out_ann = self.register(srd.OUTPUT_ANN)
+        self.out_python = self.register(srd.OUTPUT_PYTHON)
         self.lin_version = self.options['version']
 
     def putx(self, data):
@@ -135,7 +162,8 @@ class Decoder(srd.Decoder):
         self.fsm.reset()
         self.fsm.transit(LinFsm.State.Sync)
 
-        self.putx([1, ['Break condition', 'Break', 'Brk', 'B']])
+        self.lin_header.append((self.ss_block, self.es_block, value))
+        self.putx([Ann.CONTROL, ['Break condition', 'Break', 'Brk', 'B']])
 
     def handle_sync(self, value):
         self.fsm.transit(LinFsm.State.Pid)
@@ -149,16 +177,23 @@ class Decoder(srd.Decoder):
         self.lin_rsp.append((self.ss_block, self.es_block, value))
 
     def handle_checksum(self):
+        frame_dict = {}
+
+        break_ = self.lin_header.pop(0) if len(self.lin_header) else None
         sync = self.lin_header.pop(0) if len(self.lin_header) else None
 
-        self.put(sync[0], sync[1], self.out_ann, [0, ['Sync', 'S']])
+        self.put(sync[0], sync[1], self.out_ann, [Ann.DATA, ['Sync', 'S']])
 
         if sync[2] != 0x55:
             self.put(sync[0], sync[1], self.out_ann,
-                     [2, ['Sync is not 0x55', 'Not 0x55', '!= 0x55']])
+                     [Ann.ERROR_DESC, ['Sync is not 0x55', 'Not 0x55', '!= 0x55']])
 
         pid = self.lin_header.pop(0) if len(self.lin_header) else None
         checksum = self.lin_rsp.pop() if len(self.lin_rsp) else None
+
+        frame_dict['break'] = break_
+        frame_dict['sync'] = sync
+        frame_start = break_[0]
 
         if pid:
             id_ = pid[2] & 0x3F
@@ -168,34 +203,58 @@ class Decoder(srd.Decoder):
             parity_valid = parity == expected_parity
 
             if not parity_valid:
-                self.put(pid[0], pid[1], self.out_ann, [2, ['P != %d' % expected_parity]])
+                self.put(pid[0], pid[1], self.out_ann,
+                         [Ann.ERROR_DESC, ['P != %d' % expected_parity]])
 
-            ann_class = 0 if parity_valid else 3
+            ann_class = Ann.DATA if parity_valid else Ann.INLINE_ERROR
             self.put(pid[0], pid[1], self.out_ann, [ann_class, [
                 'ID: %02X Parity: %d (%s)' % (id_, parity, 'ok' if parity_valid else 'bad'),
                 'ID: 0x%02X' % id_, 'I: %d' % id_
             ]])
 
+            frame_dict['pid'] = pid
+            frame_dict['id'] = id_
+            frame_dict['parity'] = parity
+            frame_dict['parity_valid'] = parity_valid
+
         if len(self.lin_rsp):
             checksum_valid = self.checksum_is_valid(pid[2], self.lin_rsp, checksum[2])
 
             for b in self.lin_rsp:
-                self.put(b[0], b[1], self.out_ann, [0, ['Data: 0x%02X' % b[2], 'D: 0x%02X' % b[2]]])
+                self.put(b[0], b[1], self.out_ann,
+                         [Ann.DATA, ['Data: 0x%02X' % b[2], 'D: 0x%02X' % b[2]]])
 
-            ann_class = 0 if checksum_valid else 3
+            ann_class = Ann.DATA if checksum_valid else Ann.INLINE_ERROR
             self.put(checksum[0], checksum[1], self.out_ann,
                  [ann_class, ['Checksum: 0x%02X' % checksum[2], 'Checksum', 'Chk', 'C']])
 
             if not checksum_valid:
-                self.put(checksum[0], checksum[1], self.out_ann, [2, ['Checksum invalid']])
+                self.put(checksum[0], checksum[1], self.out_ann,
+                         [Ann.ERROR_DESC, ['Checksum invalid']])
+
+            frame_dict['checksum'] = checksum
+            frame_dict['checksum_valid'] = checksum_valid
+            frame_end = checksum[1]
         else:
-            pass # No response.
+            # No response.
+            frame_end = pid[1]
+
+        frame_dict['data'] = list(self.lin_rsp) # copy
+        self.put_frame_annotation(frame_start, frame_end, frame_dict)
+        self.put(frame_start, frame_end, self.out_python, ['FRAME', frame_dict])
 
         self.lin_header.clear()
         self.lin_rsp.clear()
 
+    def put_frame_annotation(self, ss, es, frame_dict):
+        data_str = ' '.join(['0x%02X' % t[2] for t in frame_dict['data']])
+        id_str = '0x%02X' % frame_dict['id']
+        ann_short = id_str + ': ' + data_str
+        self.put(ss, es, self.out_ann, [Ann.FRAME, [ann_short]])
+
     def handle_error(self, dummy):
-        self.putx([3, ['Error', 'Err', 'E']])
+        self.putx([Ann.INLINE_ERROR, ['Error', 'Err', 'E']])
+        self.put(self.ss_block, self.es_block, self.out_python, ['ERROR'])
 
     def checksum_is_valid(self, pid, data, checksum):
         if self.lin_version == 2:
