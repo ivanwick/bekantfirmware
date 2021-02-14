@@ -18,3 +18,6 @@ void bctrl_rx_lin(void);
 void bctrl_init(void);
 
 extern void (*bctrl_report_pos)(int16_t pos);
+
+// BUI also needs this value so it can anticipate stops
+#define BCTRL_DECEL_MARGIN 0x6c

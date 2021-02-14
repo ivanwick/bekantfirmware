@@ -18,16 +18,25 @@ int16_t high_pos;
 int16_t low_pos;
 int16_t cur_pos; // accessed by bui_input() and bui_set_pos()
 
+typedef struct {
+    int16_t low_pos;
+    int16_t high_pos;
+} BUI_saved_t;
+
+//__EEPROM_DATA(0x36, 0x06, 0x00, 0x16, 0, 0, 0, 0);
+__eeprom BUI_saved_t saved = {
+    .high_pos = 0x1600,
+    .low_pos = 0x0636
+};
+
+void bui_save_pos(int16_t save_pos);
+
 /**
- * Set this module's stored position values.
- * Expect to be called during initialization with values from EEPROM.
- * 
- * @param init_low_pos
- * @param init_high_pos
+ * Initialize from stored position values.
  */
-void bui_init_pos(int16_t init_low_pos, int16_t init_high_pos) {
-    low_pos = init_low_pos;
-    high_pos = init_high_pos;
+void bui_init(void) {
+    low_pos = saved.low_pos;
+    high_pos = saved.high_pos;
 }
 
 /**
@@ -49,6 +58,8 @@ void bui_input(INPUT_t input) {
             } else if (input == INPUT_MEM_DOWN && cur_pos > low_pos) {
                 bui_state = BUI_MEM_DOWN;
                 bctrl_set_target(BCTRL_DOWN);
+            } else if (input == INPUT_SAVE) {
+                bui_save_pos(cur_pos);
             }
             break;
 
@@ -120,5 +131,34 @@ void bui_set_pos(int16_t pos) {
             break;
         default:
             break;
+    }
+}
+
+/**
+ * Store the given save_pos encoder value into persistent memory.
+ * Overwrite stored low_pos or high_pos, whichever is closer to save_pos.
+ * 
+ * If the given save_pos looks like an encoder error state (negative),
+ * then don't save.
+ * 
+ * @param save_pos new encoder value to store into persistent memory
+ */
+void bui_save_pos(int16_t save_pos) {
+    if (save_pos < 0) {
+        // Encoder value indicates error state
+        return;
+    }
+
+    int16_t diff_high = abs(high_pos - save_pos);
+    int16_t diff_low = abs(low_pos - save_pos);
+
+    // Next time during a MEM move, BUI will send the STOP signal to BCTRL
+    // before it reaches the target position, to allow for deceleration.
+    if (diff_low < diff_high) {
+        low_pos = save_pos + BCTRL_DECEL_MARGIN;
+        saved.low_pos = low_pos;
+    } else {
+        high_pos = save_pos - BCTRL_DECEL_MARGIN;
+        saved.high_pos = high_pos;
     }
 }

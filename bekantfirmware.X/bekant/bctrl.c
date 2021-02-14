@@ -72,7 +72,6 @@ LIN_bus_message_t bus_schedule[] = {
 #define SCHEDULE_COMMAND_SLOT 10
 
 #define DECEL_COUNT_MAX 3 // How many decel frames to send
-#define DECEL_OVERSHOOT 0x6c
 
 enum {
     BCMD_AFTER_SCAN_INIT = 0xbf,
@@ -215,7 +214,7 @@ void bctrl_populate_cmd() {
         case BCTRL_UP_DECEL:
             if (decel_counter == 0) {
                 // add overshoot to max
-                decel_target = encoder_max + DECEL_OVERSHOOT;
+                decel_target = encoder_max + BCTRL_DECEL_MARGIN;
             }
 
             cmd_data.encoder = decel_target;
@@ -225,7 +224,7 @@ void bctrl_populate_cmd() {
         case BCTRL_DOWN_DECEL:
             if (decel_counter == 0) {
                 // subtract overshoot from min
-                decel_target = encoder_min - DECEL_OVERSHOOT;
+                decel_target = encoder_min - BCTRL_DECEL_MARGIN;
             }
 
             cmd_data.encoder = decel_target;
