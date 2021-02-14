@@ -17,4 +17,4 @@ void bctrl_set_target(BCTRL_state_t state);
 void bctrl_rx_lin(void);
 void bctrl_init(void);
 
-extern void (*bctrl_report_pos)(uint16_t pos);
+extern void (*bctrl_report_pos)(int16_t pos);

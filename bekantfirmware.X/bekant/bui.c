@@ -14,10 +14,9 @@ typedef enum {
 } BUI_state_t;
 
 BUI_state_t bui_state = BUI_STOP;
-uint16_t high_pos;
-uint16_t low_pos;
-uint16_t cur_pos; // accessed by bui_input() and bui_set_pos()
-
+int16_t high_pos;
+int16_t low_pos;
+int16_t cur_pos; // accessed by bui_input() and bui_set_pos()
 
 /**
  * Set this module's stored position values.
@@ -26,7 +25,7 @@ uint16_t cur_pos; // accessed by bui_input() and bui_set_pos()
  * @param init_low_pos
  * @param init_high_pos
  */
-void bui_init_pos(uint16_t init_low_pos, uint16_t init_high_pos) {
+void bui_init_pos(int16_t init_low_pos, int16_t init_high_pos) {
     low_pos = init_low_pos;
     high_pos = init_high_pos;
 }
@@ -104,7 +103,7 @@ void bui_input(INPUT_t input) {
  * 
  * @param pos Current position
  */
-void bui_set_pos(uint16_t pos) {
+void bui_set_pos(int16_t pos) {
     cur_pos = pos;
     switch (bui_state) {
         case BUI_MEM_UP:

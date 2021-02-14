@@ -8,23 +8,23 @@
 #include "../lin/lin_d.h"
 #include <pic.h>
 
-void (*bctrl_report_pos)(uint16_t pos);
+void (*bctrl_report_pos)(int16_t pos);
 void bctrl_populate_cmd(void);
 void bctrl_next_state(void);
 
-uint16_t bctrl_pos;
+int16_t bctrl_pos;
 uint8_t bctrl_status_08;
 uint8_t bctrl_status_09;
 BCTRL_state_t current_state = BCTRL_AFTER_SCAN;
 BCTRL_state_t target_state = BCTRL_STOP;
 
 uint8_t decel_counter = 0;
-uint16_t decel_target = 0;
+int16_t decel_target = 0;
 
 typedef union {
     uint8_t data[3];
     struct {
-        uint16_t encoder;
+        int16_t encoder;
         uint8_t status;
     };
 } BCTRL_bus_data_t;
@@ -187,11 +187,11 @@ void bctrl_timer(void) {
     }
 }
 
-inline uint16_t min(uint16_t a, uint16_t b) {
+inline int16_t min(int16_t a, int16_t b) {
     return a < b ? a : b;
 }
 
-inline uint16_t max(uint16_t a, uint16_t b) {
+inline int16_t max(int16_t a, int16_t b) {
     return a > b ? a : b;
 }
 
@@ -199,16 +199,16 @@ inline uint16_t max(uint16_t a, uint16_t b) {
  * Populate command frame based on the most recent 0x08 and 0x09 frames
  */
 void bctrl_populate_cmd() {
-    uint16_t encoder_min = min(data_space_08.encoder, data_space_09.encoder);
-    uint16_t encoder_max = max(data_space_08.encoder, data_space_09.encoder);
+    int16_t encoder_min = min(data_space_08.encoder, data_space_09.encoder);
+    int16_t encoder_max = max(data_space_08.encoder, data_space_09.encoder);
     bool error_cond = (
-            (data_space_08.encoder & 0x8000) != 0 ||
-            (data_space_09.encoder & 0x8000) != 0
+            data_space_08.encoder < 0 ||
+            data_space_09.encoder < 0
             );
 
     switch (current_state) {
         case BCTRL_AFTER_SCAN:
-            cmd_data.encoder = 0xfff6;
+            cmd_data.encoder = (int16_t)0xfff6;
             cmd_data.status = BCMD_AFTER_SCAN_INIT;
             break;
 

@@ -15,8 +15,8 @@
 #include <pic.h>
 
 //__EEPROM_DATA(0x36, 0x06, 0x00, 0x16, 0, 0, 0, 0);
-__eeprom uint16_t mem_high_pos = 0x1600;
-__eeprom uint16_t mem_low_pos = 0x0636;
+__eeprom int16_t mem_high_pos = 0x1600;
+__eeprom int16_t mem_low_pos = 0x0636;
 
 void main(void) {
     /* Configure the oscillator for the device */
