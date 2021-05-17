@@ -1,4 +1,6 @@
-## BEKANT Firmware
+Programmable position memory for IKEA BEKANT adjustable sit/stand desk. Alternative firmware on OEM hardware.
+
+## Position Memory
 
 The IKEA BEKANT adjustable-height sit/stand desk is controlled by a minimal two-button interface: hold one button to move up, hold the other button to move down. Releasing the button stops moving the desk, which means you have to hold a button while the table steadily moves into position, perhaps while you watch for it to line up with a mark you made on the wall at the perfect height.
 
@@ -7,6 +9,19 @@ If you switch the height of the desk often, standing there holding a button give
 Several IKEA hackers with the same thoughts have reverse engineered the signaling protocol, built replacement hardware, and added more automation to the the control system. But these implementations have all either treated the OEM control board as a black box or replaced it outright, meaning their modifications all require new hardware.
 
 This project is a reimplementation of the BEKANT control firmware which can be flashed onto the OEM microcontroller, on its OEM circuit board, adding position memory without changing any hardware.
+
+## Images
+
+![PIC programmer and logic analyzer connected to OEM BEKANT control board](/images/prog_logic_connected.jpg)
+
+![Circuitboard traces](/images/front_crop_backtraces.jpg)
+
+![TX, RX, and GND connections](/images/tx_rx_front.jpg)
+
+![LIN logic trace in PulseView](/images/lin_pulseview.png)
+
+![Curcuitboard connections annotated](/images/under_connector_annotated.png)
+
 
 ## Build & Flash
 
