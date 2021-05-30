@@ -26,10 +26,10 @@ void ConfigureOscillator(void)
     // Timer2 clock input is Fosc/4 (instruction clock)
     // System Fosc: 16 Mhz
     // Instruction clock: Fosc / 4 = 4 Mhz
-    // 4 Mhz / 49 period / 10 postscaler = ~8163 Hz
-    //   0.0001225 sec
-    //   122.5 usec
-    PR2bits.PR2 = 0x31; // Timer2 period
+    // 4 Mhz / 100 period / 10 postscaler = 4000 Hz
+    //   0.00025 sec
+    //   250 usec
+    PR2bits.PR2 = 100; // Timer2 period
     
     T2CONbits.T2OUTPS = 0b1001; // 1:10 Postscaler
     T2CONbits.T2CKPS = 0b00; // Prescaler is 1

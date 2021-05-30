@@ -13,7 +13,9 @@ typedef struct {
     ButtonState_t last_state;
 } Debounce_t;
 
-#define DEBOUNCE_THRESHOLD 128
+// Button state is polled at Timer2 frequency: 4000 Hz so every 250 us.
+// 250 us * 200 count = 50 ms
+#define DEBOUNCE_THRESHOLD 200
 
 /**
  * 
@@ -46,7 +48,10 @@ typedef struct {
     INPUT_t state;
 } InputState_t;
 
-#define SAVE_HOLD_THRESHOLD 128
+// Debounced input comes in at frequency Timer2 / DEBOUNCE_THRESHOLD
+// 4000 Hz / 200 = 20 Hz
+//   0.05 sec * 60 = 3 sec to hold SAVE gesture
+#define SAVE_HOLD_THRESHOLD 60
 
 INPUT_t btn_gesture(ButtonState_t btn) {
     static InputState_t input = {
