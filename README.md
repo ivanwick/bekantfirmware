@@ -16,6 +16,8 @@ This firmware adds position memory with no new hardware.
 
 The firmware image was built in MPLAB X with the XC8 compiler. The microcontroller (PIC16LF1938) can be programmed through ICSP using a PICKit or other PIC programmer.
 
+[Programming Guide](Documentation/programming-guide.md)
+
 ## User's Guide
 
 | Button | Action |
