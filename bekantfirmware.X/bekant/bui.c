@@ -161,4 +161,7 @@ void bui_save_pos(int16_t save_pos) {
         high_pos = save_pos - BCTRL_DECEL_MARGIN;
         saved.high_pos = high_pos;
     }
+
+    // Click feedback
+    bctrl_set_target(BCTRL_CLICK);
 }

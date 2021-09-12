@@ -92,13 +92,15 @@ void bctrl_next_state(void) {
             break;
 
         case BCTRL_STOP:
-            if (target_state == BCTRL_UP || target_state == BCTRL_DOWN) {
+            if (target_state == BCTRL_UP || target_state == BCTRL_DOWN
+                    || target_state == BCTRL_CLICK) {
                 current_state = BCTRL_PRE_MOVE;
             }
             break;
 
         case BCTRL_PRE_MOVE:
-            if (target_state == BCTRL_UP || target_state == BCTRL_DOWN) {
+            if (target_state == BCTRL_UP || target_state == BCTRL_DOWN
+                    || target_state == BCTRL_CLICK) {
                 current_state = target_state;
             }
             break;
@@ -126,6 +128,11 @@ void bctrl_next_state(void) {
 
         case BCTRL_PRE_STOP:
             current_state = BCTRL_STOP;
+            break;
+
+        case BCTRL_CLICK:
+            current_state = BCTRL_PRE_STOP;
+            bctrl_set_target(BCTRL_STOP);
             break;
     }
 }
@@ -267,6 +274,14 @@ void bctrl_populate_cmd() {
             cmd_data.encoder = encoder_max;
             cmd_data.status = BCMD_PRE_STOP;
             break;
+        case BCTRL_CLICK:
+            // Single move command just to click the legs.
+            // One command isn't enough to really move, but it does cause a
+            // click (relay for brakes?)
+            // Either BCMD_UP or BCMD_DOWN status command causes a click
+            cmd_data.encoder = encoder_max;
+            cmd_data.status = BCMD_DOWN;
+            break;
     }
 }
 
@@ -279,6 +294,7 @@ void bctrl_set_target(BCTRL_state_t state) {
             break;
         case BCTRL_UP:
         case BCTRL_DOWN:
+        case BCTRL_CLICK:
             if (current_state == BCTRL_STOP) {
                 // enable timer because we are coming out of BCTRL_STOP state
                 // and will need to start doing a bus transaction

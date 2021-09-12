@@ -10,6 +10,7 @@ typedef enum {
     BCTRL_UP_DECEL,
     BCTRL_DOWN_DECEL,
     BCTRL_PRE_STOP,
+    BCTRL_CLICK,
 } BCTRL_state_t;
 
 void bctrl_timer(void);
