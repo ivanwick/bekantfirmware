@@ -79,7 +79,7 @@ enum {
     BCMD_PRE_MOVE = 0xc4,
     BCMD_UP = 0x86,
     BCMD_DOWN = 0x85,
-    BCMD_CMD_DECEL = 0x87,
+    BCMD_DECEL = 0x87,
     BCMD_PRE_STOP = 0x84,
     BCMD_ERR_DOWN = 0xbd,
     BCMD_ERR_UP = 0xbc,
@@ -218,7 +218,7 @@ void bctrl_populate_cmd() {
             }
 
             cmd_data.encoder = decel_target;
-            cmd_data.status = BCMD_CMD_DECEL;
+            cmd_data.status = BCMD_DECEL;
             break;
 
         case BCTRL_DOWN_DECEL:
@@ -228,7 +228,7 @@ void bctrl_populate_cmd() {
             }
 
             cmd_data.encoder = decel_target;
-            cmd_data.status = BCMD_CMD_DECEL;
+            cmd_data.status = BCMD_DECEL;
             break;
 
         case BCTRL_UP:

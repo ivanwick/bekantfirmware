@@ -158,7 +158,6 @@ void bscan_scan(void) {
 }
 
 void lin_txrx_blocking(LIN_scan_message_t *msg) {
-    msg = msg;
     lin_id = msg->id;
     lin_data_count = msg->data_count;
     lin_data = (uint8_t*)msg->data;
