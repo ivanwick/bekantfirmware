@@ -4,6 +4,7 @@
 ## SIGROKDECODE_DIR=~/BEKANT/sigrok/ \
 ## sigrok-cli \
 ##   -P 'uart:baudrate=19200:rx=RX,linpyout,BEKANT' \
+##   -A BEKANT=transaction \
 ##   -i ~/BEKANT/logictrace/oem_init_startup.sr
 
 import sigrokdecode
@@ -74,14 +75,14 @@ class Decoder(sigrokdecode.Decoder):
     outputs = []
     tags = ['LIN']
     annotations = (
-        ('frame', 'LIN frames'),
-        ('transaction', 'Transactions'),
-        ('error', 'Error descriptions'),
+        ('frame', 'LIN frame'),
+        ('transaction', 'Transaction'),
+        ('error', 'Error'),
     )
     annotation_rows = (
-        ('frame', 'Frame', (Ann.FRAME,)),
-        ('transaction', 'Transaction', (Ann.TRANSACTION,)),
-        ('error', 'Error', (Ann.ERROR,)),
+        ('frames', 'Frames', (Ann.FRAME,)),
+        ('transactions', 'Transactions', (Ann.TRANSACTION,)),
+        ('errors', 'Errors', (Ann.ERROR,)),
     )
 
     def __init__(self):
