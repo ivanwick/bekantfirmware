@@ -26,17 +26,17 @@ class BusTransaction:
             self.long_name = long_name
 
     bus_sched = [
-        Slot(0x11, "Master 0x11", "M 11"),
-        Slot(0x08, "Slave 0x08", "S 08"),
-        Slot(0x09, "Slave 0x09", "S 09"),
-        Slot(0x10, "Slave 0x10", "S 10"),
-        Slot(0x10, "Slave 0x10", "S 10"),
-        Slot(0x10, "Slave 0x10", "S 10"),
-        Slot(0x10, "Slave 0x10", "S 10"),
-        Slot(0x10, "Slave 0x10", "S 10"),
-        Slot(0x10, "Slave 0x10", "S 10"),
-        Slot(0x01, "Slave 0x01", "S 01"),
-        Slot(0x12, "Master 0x12", "M 12"),
+        Slot(0x11, 'Master 0x11', 'M 11'),
+        Slot(0x08, 'Slave 0x08', 'S 08'),
+        Slot(0x09, 'Slave 0x09', 'S 09'),
+        Slot(0x10, 'Slave 0x10', 'S 10'),
+        Slot(0x10, 'Slave 0x10', 'S 10'),
+        Slot(0x10, 'Slave 0x10', 'S 10'),
+        Slot(0x10, 'Slave 0x10', 'S 10'),
+        Slot(0x10, 'Slave 0x10', 'S 10'),
+        Slot(0x10, 'Slave 0x10', 'S 10'),
+        Slot(0x01, 'Slave 0x01', 'S 01'),
+        Slot(0x12, 'Master 0x12', 'M 12'),
     ]
     
     def __init__(self):
@@ -62,7 +62,6 @@ class BusTransaction:
 
     def is_complete(self):
         return self.next_sched_pos >= len(self.bus_sched)
-
 
 class Decoder(sigrokdecode.Decoder):
     api_version = 3
@@ -144,10 +143,10 @@ class Decoder(sigrokdecode.Decoder):
                         self.decode_transaction(self.txn)
                         self.reset()
                 else:
-                    self.put(ss, es, self.out_ann, [Ann.ERROR, ["Error"]])
+                    self.put(ss, es, self.out_ann, [Ann.ERROR, ['Error']])
                     self.reset()
         elif ptype == 'ERROR':
-            self.put(ss, es, self.out_ann, [Ann.ERROR, ["Error from LIN decoder"]])
+            self.put(ss, es, self.out_ann, [Ann.ERROR, ['Error from LIN decoder']])
 
     def decode_transaction(self, transaction):
         frame_08 = transaction.frames[1].frame
@@ -183,14 +182,14 @@ class Decoder(sigrokdecode.Decoder):
 
     def frame_as_string_long(self, frame_dict):
         data_list = data_tuples_as_list(frame_dict['data'])
-        return "ID:%02x Data:%s" % (
+        return 'ID:%02x Data:%s' % (
             frame_dict['id'],
-            ' '.join(["%02x" % b for b in data_list])
+            ' '.join(['%02x' % b for b in data_list])
             )
 
 def data_tuples_as_list(dtups):
     return [t[2] for t in dtups]
 
 def extract_encoder_val(data_list):
-    (enc,) = struct.unpack("H", bytes(data_list[0:2]))
+    (enc,) = struct.unpack('H', bytes(data_list[0:2]))
     return enc
