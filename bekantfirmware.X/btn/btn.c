@@ -1,8 +1,20 @@
 
 
 #include "btn.h"
-
+#include <pic.h>
+#include <stdbool.h>       /* For true/false definition */
 #include <stdint.h>        /* For uint8_t definition */
+
+// A mapping to PORTB
+// Determined by PCB traces
+typedef union {
+    PORTBbits_t PORTB;
+    struct {
+        unsigned DOWN : 1;
+        unsigned UP : 1;
+        unsigned : 6;
+    };
+} ButtonState_t;
 
 #define PRESSED(b) (!b)
 #define RELEASED(b) (b)
@@ -42,6 +54,8 @@ bool btn_debounce(ButtonState_t now_btn) {
         return false;
     }
 }
+
+bool btn_debounce(ButtonState_t now_btn);
 
 typedef struct {
     uint8_t save_hold;
@@ -136,4 +150,37 @@ INPUT_t btn_gesture(ButtonState_t btn) {
     }
     
     return input.state;
+}
+
+void (*btn_report_gesture)(INPUT_t gesture);
+
+void btn_timer() {
+    static INPUT_t last_input = INPUT_IDLE;
+
+    ButtonState_t button_state = (ButtonState_t)PORTBbits;
+
+    if (btn_debounce(button_state)) {
+        INPUT_t input = btn_gesture(button_state);
+
+        if (input != last_input) {
+            last_input = input;
+
+            btn_report_gesture(input);
+        }
+    }
+}
+
+void btn_init(void) {
+    // Timer2 clock input is Fosc/4 (instruction clock)
+    // System Fosc: 16 Mhz
+    // Instruction clock: Fosc / 4 = 4 Mhz
+    // 4 Mhz / 100 period / 10 postscaler = 4000 Hz
+    //   0.00025 sec
+    //   250 usec
+    T2CONbits.T2CKPS = 0b00; // Prescaler is 1
+    PR2bits.PR2 = 100; // Timer2 period
+    T2CONbits.T2OUTPS = 0b1001; // 1:10 Postscaler
+
+    T2CONbits.TMR2ON = 1; // Timer is on
+    PIE1bits.TMR2IE = 1; // Enable Timer2 interrupt
 }

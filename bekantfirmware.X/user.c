@@ -15,6 +15,7 @@
 #include "lin/lin_d.h"
 #include "bekant/bctrl.h"
 #include "bekant/bui.h"
+#include "btn/btn.h"
 
 /******************************************************************************/
 /* User Functions                                                             */
@@ -29,6 +30,8 @@ void InitApp(void)
     lin_frame_finish = bctrl_rx_lin;
     // hook up BEKANT control module to BEKANT UI module
     bctrl_report_pos = bui_set_pos;
+    // Pass button gesture to BEKANT UI input
+    btn_report_gesture = bui_input;
 
     /* TODO Initialize User Ports/Peripherals/Project here */
 

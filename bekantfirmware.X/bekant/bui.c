@@ -4,6 +4,7 @@
 
 #include "bui.h"
 #include "bctrl.h"
+#include <stdlib.h> // abs()
 
 typedef enum {
     BUI_STOP,

@@ -25,7 +25,6 @@ void main(void) {
 
     ANSELB = 0b00000000;
     TRISB = 0b00000011;
-    INPUT_t last_input = INPUT_IDLE;
     
     LATC = 1;  // Enables LIN input to echo back from the bus
     TRISC = 0b10000000; // C7: input (serial RX)
@@ -38,6 +37,8 @@ void main(void) {
     bctrl_init();
 
     bui_init();
+    
+    btn_init();
 
     // TEST CODE TO DEBUG IN SIMULATOR
     //lin_id = 0x11;
@@ -49,20 +50,6 @@ void main(void) {
     //lin_tx_frame();
     
     while (1) {
-        ButtonState_t button_state = (ButtonState_t)PORTBbits;
-        
-        if (btn_debounce(button_state)) {
-            INPUT_t input = btn_gesture(button_state);
-            
-            if (input != last_input) {
-                last_input = input;
-
-                bui_input(input);
-            }
-        }
-        
         CLRWDT();
-        while (!PIR1bits.TMR2IF);
-        PIR1bits.TMR2IF = false;
     }
 }

@@ -22,16 +22,4 @@ void ConfigureOscillator(void)
     OPTION_REGbits.TMR0SE = 1; // TMR0SE Increment on high-to-low transition on T0CKI pin
     OPTION_REGbits.PSA = 0; // PSA Prescaler is assigned to the Timer0 module
     OPTION_REGbits.PS = 0b010; // 010 Prescaler 1:8
-
-    // Timer2 clock input is Fosc/4 (instruction clock)
-    // System Fosc: 16 Mhz
-    // Instruction clock: Fosc / 4 = 4 Mhz
-    // 4 Mhz / 100 period / 10 postscaler = 4000 Hz
-    //   0.00025 sec
-    //   250 usec
-    PR2bits.PR2 = 100; // Timer2 period
-    
-    T2CONbits.T2OUTPS = 0b1001; // 1:10 Postscaler
-    T2CONbits.T2CKPS = 0b00; // Prescaler is 1
-    T2CONbits.TMR2ON = 1; // Timer is on
 }

@@ -1,22 +1,6 @@
 
-#include <pic.h>
-#include <stdbool.h>       /* For true/false definition */
-
 #ifndef BTN_H
 #define BTN_H
-
-// A mapping to PORTB
-// Determined by PCB traces
-typedef union {
-    PORTBbits_t PORTB;
-    struct {
-        unsigned DOWN : 1;
-        unsigned UP : 1;
-        unsigned : 6;
-    };
-} ButtonState_t;
-
-bool btn_debounce(ButtonState_t now_btn);
 
 typedef enum {
     INPUT_IDLE,
@@ -27,6 +11,8 @@ typedef enum {
     INPUT_SAVE,
 } INPUT_t;
 
-INPUT_t btn_gesture(ButtonState_t btn);
+void btn_init(void);
+void btn_timer(void);
+extern void (*btn_report_gesture)(INPUT_t gesture);
 
 #endif /* BTN_H */
