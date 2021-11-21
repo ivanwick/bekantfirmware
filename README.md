@@ -1,25 +1,27 @@
 # BEKANT Firmware
 
-Control firmware with position memory for IKEA BEKANT adjustable-height desk. Can be flashed onto the OEM microcontroller, on its OEM circuit board, without changing any hardware.
+![Position memory diagram](https://github.com/ivanwick/bekantfirmware/wiki/images/diagram.png)
 
-## Background
+Control firmware for IKEA BEKANT adjustable-height desk with lower and upper memory positions. Can be flashed onto the OEM controller, without changing any hardware.
 
-The stock configuration of the IKEA BEKANT adjustable-height sit/stand desk is controlled by a minimal two-button interface: hold one button to move up, hold the other button to move down. Releasing the button stops moving the desk, which means you have to hold a button while the table steadily moves into position, perhaps while you watch for it to line up with a mark on the wall at the perfect height.
-
-If you switch the height of the desk often, standing there holding a button gives you plenty of time to wonder why a position memory feature wasn't originally built in. A single button press should be able to move it to a pre-programmed height.
-
-Several IKEA hackers with the same thoughts have reverse engineered the signaling protocol, built replacement hardware, and added more automation to the the control system. But these implementations have either treated the OEM control board as a black box or replaced it outright, meaning their modifications all require new hardware.
-
-This firmware adds position memory with no new hardware.
+Pre-program a sitting and standing position for your desk and move between them with a single button press.
 
 ## Build & Flash
 
-The firmware image was built in MPLAB X with the XC8 compiler. The microcontroller (PIC16LF1938) can be programmed through ICSP using a PICKit or other PIC programmer.
+Downloadable firmware images are built in MPLAB X with the XC8 compiler. The microcontroller (PIC16LF1938) can be programmed through ICSP using a PICKit or other PIC programmer.
+
+[Latest Release](https://github.com/ivanwick/bekantfirmware/releases/latest)
+
+## Documentation
+
+[Project Wiki](https://github.com/ivanwick/bekantfirmware/wiki/)
+
+[Installation Guide](https://github.com/ivanwick/bekantfirmware/wiki/Installation-Guide)
 
 ## User's Guide
 
-| Button | Action |
-| ------ | ------ |
+| Gesture | Action |
+| ------- | ------ |
 | <kbd>△</kbd> | Move up  |
 | <kbd>△</kbd> + <kbd>▽</kbd> | Move up to upper memory position  |
 | <kbd>▽</kbd> | Move down |
@@ -30,10 +32,9 @@ The firmware image was built in MPLAB X with the XC8 compiler. The microcontroll
 
 Automatic movement to a stored position can be canceled by pressing either button or cutting power.
 
-For the *Save* gesture, press both buttons at the same time and hold for 3 seconds. The firmware will overwrite either the lower or upper stored position, whichever is closer to the current position. The table should not be moving during the hold, otherwise one of the other gestures was triggered. Both buttons must be pressed within the software debounce interval.
+For the *Save* gesture, press both buttons at the same time and hold for 3 seconds until the legs click. The firmware will overwrite either the lower or upper stored position, whichever is closer to the current position. The table should not be moving during the hold, otherwise one of the other gestures was triggered. Both buttons must be pressed within the software debounce interval.
 
-
-### Memory Positions
+## Memory Positions
 
 Memory positions are stored in the PIC EEPROM. These are 16-bit little-endian integers for the encoder values of the motorized table legs.
 
